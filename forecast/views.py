@@ -15,11 +15,21 @@ from django.http import HttpResponse
 # Local Imports
 
 
+contentType = 'application/json; charset=utf-8'
+
 def ping(request):
     """Function to ping the server. Returns a response indicating that the
     server is running.
     """
-    return HttpResponse("<h1>Ping Page</h1>")
+    # Application Version
+    with open(os.path.join(os.getcwd(), 'VERSION'), 'r') as f:
+        version = f.read()
+
+    response = json.dumps(
+        {'name': 'weatherservice', 'status': 'ok', 'version': version}
+    )
+
+    return HttpResponse(response, content_type=contentType)
 
 
 def forecast(request, city):
