@@ -1,6 +1,5 @@
 """Converts a datetime object to an integer in the format YYYYMMDDHHMM"""
 
-from datetime import datetime
 
 def date_to_int(inputDate):
     """Converts intputDate into an integer in the format YYYYMMDDHHMM where

@@ -7,15 +7,13 @@ Will perform the following tests:
 
 # IMPORTS
 # Python Core Library
-import os
-import json
 from datetime import datetime
 
 # Third Party Imports
 from django.test import TestCase
 
 # Local Imports
-from corefunctions import date_to_int
+import corefunctions
 from ..models import Cities, Forecast
 
 
@@ -39,11 +37,7 @@ def test_cities_test_generator():
 
     setattr(TestCities, 'test_1', base_test(1, 1))
 
-    citiesDataPath = os.path.join(os.getcwd(), 'all_cities.json')
-    with open(citiesDataPath) as jsonFile:
-        citiesData = json.load(jsonFile)
-
-    for city in citiesData:
+    for city in corefunctions.all_cities:
         # By using .get, either the record or None will be returned.
         querySet = Cities.objects.get(name=city)
         testString = f'test_{city}'
@@ -78,7 +72,7 @@ class TestForecast(TestCase):
             humidity=testData['humidity'],
             pressure=testData['pressure'],
             temperature=testData['temperature'],
-            forecast_for=date_to_int.date_to_int(datetime.today())
+            forecast_for=corefunctions.date_to_int(datetime.today())
         )
         newEntry.save()
         dbItem = Forecast.objects.get(

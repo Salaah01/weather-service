@@ -2,23 +2,19 @@
 
 # IMPORTS
 # Python Core Imports
-import os
-import json
 
 # Third Party Imports
 from django.db import migrations
 
 # Local Imports
+import corefunctions
 
 
 def initial_cities_data(apps, schemaEditor):
     """Will populate the "Cities" models will all the cities in the world."""
     Cities = apps.get_model('forecast', 'Cities')
-    citiesDataPath = os.path.join(os.getcwd(), 'all_cities.json')
-    with open(citiesDataPath) as jsonFile:
-        citiesData = json.load(jsonFile)
 
-    for city in citiesData:
+    for city in corefunctions.all_cities:
         newCity = Cities.objects.create(name=city)
         newCity.save()
 
