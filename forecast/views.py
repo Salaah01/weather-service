@@ -13,9 +13,10 @@ import json
 from django.http import HttpResponse
 
 # Local Imports
-
+from .response_builder import ResponseBuilder
 
 contentType = 'application/json; charset=utf-8'
+
 
 def ping(request):
     """Function to ping the server. Returns a response indicating that the
@@ -34,4 +35,4 @@ def ping(request):
 
 def forecast(request, city):
     """Returns weather information on city."""
-    return HttpResponse('<h1>Forecast Page</h1>')
+    return ResponseBuilder(request, city).get_response()
