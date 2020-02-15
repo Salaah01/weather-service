@@ -16,5 +16,11 @@ import os
 
 # Local Imports
 
-# Open Weather Map API Key
-OWN_API = os.getenv('OWN_API')
+# Open Weather Map URL
+API_BASE_URL = f"http://api.openweathermap.org/data/2.5/forecast?appid={os.getenv('OWM_API')}&q="
+
+# Maximum number of days into the future a forecast can be retrieved.
+MAX_FORCAST_DAYS = 5
+
+# The time interval between any two sets of datapoints.
+API_TIME_INTERVAL_MINS = 180
