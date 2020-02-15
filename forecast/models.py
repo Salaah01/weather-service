@@ -36,6 +36,7 @@ class Forecast(models.Model):
     humidity = models.FloatField()
     pressure = models.FloatField()
     temperature = models.FloatField()
+    clouds = models.FloatField()
     # forecast_for contains date and time for the forcast.
     # This could be a models.DateTimeField but not all databases can support
     # this field type.
