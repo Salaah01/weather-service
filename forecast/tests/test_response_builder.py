@@ -18,9 +18,10 @@ from django.http import HttpResponse
 
 # Local Imports
 from ..response_builder import ResponseBuilder
+from ..models import Forecast
 
 
-class TestResponseBuilder(unittest.TestCase):
+class TestResponseBuilder(TestCase):
     #     """Unittests for the ResponseBuilder module"""
 
     def setUp(self):
@@ -53,3 +54,20 @@ class TestResponseBuilder(unittest.TestCase):
             response.status_code,
             expected['status']
         )
+
+    def test_API_called_once_only(self):
+        """Test that the API is called once only when querying for a
+        information. When a valid query is sent, if applicable data exists
+        in the database, then that data should be returned. Otherwise, the
+        call_API method should be called to call the API and populate the
+        database.
+
+        This test will call the module twice with the same query and will
+        check that the database has only been updated one.
+        """
+        ResponseBuilder(self.request, 'london').get_response()
+        objectsCall1 = len(Forecast.objects.all())
+        ResponseBuilder(self.request, 'london').get_response()
+        objectsCall2 = len(Forecast.objects.all())
+
+        self.assertEquals(objectsCall1, objectsCall2)

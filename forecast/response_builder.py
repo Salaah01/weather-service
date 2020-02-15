@@ -89,7 +89,7 @@ class ResponseBuilder:
         )
 
         querySet = Forecast.objects.filter(
-            city=self.city + 'zzzz',
+            city=self.city,
             forecast_for__gte=minDate,
             forecast_for__lte=maxTime
         ).order_by('-forecast_for')

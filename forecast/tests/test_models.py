@@ -113,5 +113,5 @@ def test_forecast_test_generator():
                     base_test(False, failMessage))
 
 
-test_cities_test_generator()
-test_forecast_test_generator()
+# test_cities_test_generator()
+# test_forecast_test_generator()
