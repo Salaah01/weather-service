@@ -69,13 +69,16 @@ class ResponseBuilder:
             # The querySet may return multiple rows of data contain forcast
             # information at different times of the day.
             # Filter the results and return the data at a single time.
-            querySet = self.nearest_data_to_forecast_date(
+            querySet = self.queryset_filter(
                 querySet,
                 corefunctions.date_to_int(forecastDate),
                 'forecast_for'
             )
 
-            return HttpResponse("<h1>Forecast Page</h1>")
+            # Convert the querySet to a dictionary
+            querySet = self.queryset_to_dict(querySet)
+
+            return HttpResponse(json.dumps(querySet))
 
     def forecast_data(self, forecastDate):
         """Given a city (string) and a forecast time (int in the format
@@ -171,7 +174,7 @@ class ResponseBuilder:
                 newData.save()
 
     @staticmethod
-    def nearest_data_to_forecast_date(querySet, forecastDate, timeField):
+    def queryset_filter(querySet, forecastDate, timeField):
         """Given a querySet which contains a timeField, find the row of data
         which is nearest to the forecastDate.
         Arguments:
@@ -182,10 +185,9 @@ class ResponseBuilder:
         """
 
         if len(querySet) == 1:
-            return querySet
+            return querySet[0]
         else:
             querySet = querySet.order_by(timeField)
-
             initDiff = abs(getattr(querySet[0], timeField) - forecastDate)
 
         for dataRow in range(2, len(querySet)):
@@ -195,7 +197,15 @@ class ResponseBuilder:
             else:
                 return querySet[dataRow - 1]
         else:
-            return querySet[dataRow]
+            return querySet[len(querySet) - 1]
+
+    @staticmethod
+    def queryset_to_dict(querySet):
+        """Converts the querySet to a dictionary."""
+
+        fields = ['humidity', 'pressure', 'temperature', 'clouds']
+
+        return {field: getattr(querySet, field) for field in fields}
 
     def get_response(self):
         """Gets the HTTP response"""
