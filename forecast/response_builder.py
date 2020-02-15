@@ -60,14 +60,24 @@ class ResponseBuilder:
                 # TODO: complete this path.
                 pass
             else:
-                forcastDate = datetime.now()
-            self.paramaters['at'] = corefunctions.date_to_int(forcastDate)
+                forecastDate = datetime.now()
+            self.paramaters['at'] = corefunctions.date_to_int(forecastDate)
 
-            self.forecast_data(datetime.now())
+            # Retrieve the forecast data
+            querySet = self.forecast_data(forecastDate)
+
+            # The querySet may return multiple rows of data contain forcast
+            # information at different times of the day.
+            # Filter the results and return the data at a single time.
+            querySet = self.nearest_data_to_forecast_date(
+                querySet,
+                corefunctions.date_to_int(forecastDate),
+                'forecast_for'
+            )
 
             return HttpResponse("<h1>Forecast Page</h1>")
 
-    def forecast_data(self, forecastTime):
+    def forecast_data(self, forecastDate):
         """Given a city (string) and a forecast time (int in the format
         YYYYMMDDHHMM or datetime.datetime), return the forcast for a city at
         the specified time.
@@ -76,15 +86,15 @@ class ResponseBuilder:
         # NOTE: Amend the config file to reflect the time it takes before new data
         # by the API would be provided accordingly.
 
-        if isinstance(forecastTime, int):
-            forecastTime = corefunctions.int_to_datetime(forecastTime)
+        if isinstance(forecastDate, int):
+            forecastDate = corefunctions.int_to_datetime(forecastDate)
 
         minDate = corefunctions.date_to_int(
-            forecastTime
+            forecastDate
             - timedelta(minutes=config.API_TIME_INTERVAL_MINS)
         )
         maxTime = corefunctions.date_to_int(
-            forecastTime
+            forecastDate
             + timedelta(minutes=config.API_TIME_INTERVAL_MINS)
         )
 
@@ -92,11 +102,19 @@ class ResponseBuilder:
             city=self.city,
             forecast_for__gte=minDate,
             forecast_for__lte=maxTime
-        ).order_by('-forecast_for')
+        ).order_by('forecast_for')
 
         # If the data does not exist, then call the API.
         if not querySet:
             self.call_API(self.city)
+
+        querySet = Forecast.objects.filter(
+            city=self.city,
+            forecast_for__gte=minDate,
+            forecast_for__lte=maxTime
+        )
+
+        return querySet
 
     @staticmethod
     def call_API(city):
@@ -130,7 +148,7 @@ class ResponseBuilder:
                 # API uses the datatype we want.
 
                 # Convert the forecast time epoch to local time.
-                forecastTime = time.strftime(
+                forecastDate = time.strftime(
                     '%Y%m%d%H%M',
                     time.localtime(data['dt'])
                 )
@@ -142,10 +160,9 @@ class ResponseBuilder:
                     'celsius'
                 )
 
-                print(temperature)
                 newData = Forecast.objects.create(
                     city_id=city,
-                    forecast_for=forecastTime,
+                    forecast_for=forecastDate,
                     humidity=data['main']['humidity'],
                     pressure=data['main']['pressure'],
                     clouds=data['clouds']['all'],
@@ -153,10 +170,32 @@ class ResponseBuilder:
                 )
                 newData.save()
 
+    @staticmethod
+    def nearest_data_to_forecast_date(querySet, forecastDate, timeField):
+        """Given a querySet which contains a timeField, find the row of data
+        which is nearest to the forecastDate.
+        Arguments:
+        querySet: Django query set
+        forecastDate: date and time in the formation YYYYMMDDHHMM.
+        timeField: a field in the querySet which contains a list of times in
+                   the format YYYYMMDDHHMM.
+        """
 
+        if len(querySet) == 1:
+            return querySet
+        else:
+            querySet = querySet.order_by(timeField)
 
+            initDiff = abs(getattr(querySet[0], timeField) - forecastDate)
 
-
+        for dataRow in range(2, len(querySet)):
+            diff = abs(getattr(querySet[dataRow], timeField) - forecastDate)
+            if diff < initDiff:
+                initDiff = diff
+            else:
+                return querySet[dataRow - 1]
+        else:
+            return querySet[dataRow]
 
     def get_response(self):
         """Gets the HTTP response"""
