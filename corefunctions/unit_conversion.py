@@ -18,7 +18,7 @@ class UnitConversion:
         """Converts temperatures to new units."""
         if initialUnit == 'kelvin' and newUnit == 'celsius':
             # Python
-            return round(value - 273.15, 4, maxPrecision)
+            return round(value - 273.15, maxPrecision)
 
         raise ValueError(
             f'temperature convert of {initialUnit} to {newUnit} is not supported.'
