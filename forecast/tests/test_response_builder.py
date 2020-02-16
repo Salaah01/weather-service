@@ -38,7 +38,7 @@ class TestResponseBuilder(TestCase):
         self.client = Client()
         self.request = SimpleNamespace(GET={})
 
-    def zzztest_invalid_city(self):
+    def test_invalid_city(self):
         """Test that an invalid city would would a 404 with an error message
         in the content.
         """
@@ -64,7 +64,7 @@ class TestResponseBuilder(TestCase):
             expected['status']
         )
 
-    def zzztest_API_called_once_only(self):
+    def test_API_called_once_only(self):
         """Test for call_API method.
         Test that the API is called once only when querying for
         information. When a valid query is sent, if applicable data exists
@@ -82,7 +82,7 @@ class TestResponseBuilder(TestCase):
 
         self.assertEquals(objectsCall1, objectsCall2)
 
-    def zzztest_queryset_filter(self):
+    def test_queryset_filter(self):
         """Tests for the queryset_filter method.
         Test to ensure that the querySet with the value closest to the
         forecast date is returned using the following tests:
@@ -174,7 +174,7 @@ class TestResponseBuilder(TestCase):
             where the 2nd item is closest to the desired forecast date."
         )
 
-    def zzztest_valid_response(self):
+    def test_valid_response(self):
         """Tests that the response from a query is valid.
         Populate the database with specific data and check that the response
         contains that data.

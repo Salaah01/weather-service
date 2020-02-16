@@ -26,13 +26,14 @@ class TestCities(TestCase):
 class TestForecast(TestCase):
     """Test to ensure that the models.Forecast stores data correctly."""
 
-    def zzztest_valid_entry(self):
+    def test_valid_entry(self):
 
         testData = {
             'city': 'london',
             'humidity': 1.44,
             'pressure': 1.22,
-            'temperature': 5.2
+            'temperature': 5.2,
+            'clouds': 1.55
         }
 
         newEntry = Forecast.objects.create(
@@ -40,7 +41,8 @@ class TestForecast(TestCase):
             humidity=testData['humidity'],
             pressure=testData['pressure'],
             temperature=testData['temperature'],
-            forecast_for=corefunctions.date_to_int(datetime.today())
+            clouds=testData['clouds'],
+            forecast_for=corefunctions.date_to_int(datetime.today()),
         )
         newEntry.save()
         dbItem = Forecast.objects.get(
@@ -48,6 +50,7 @@ class TestForecast(TestCase):
             humidity=testData['humidity'],
             pressure=testData['pressure'],
             temperature=testData['temperature'],
+            clouds=testData['clouds']
         )
 
         if dbItem:
@@ -55,6 +58,8 @@ class TestForecast(TestCase):
             self.assertEquals(testData['humidity'], dbItem.humidity)
             self.assertEquals(testData['pressure'], dbItem.pressure)
             self.assertEquals(testData['temperature'], dbItem.temperature)
+            self.assertEquals(testData['clouds'], dbItem.clouds)
+
         else:
             self.assertTrue(False, 'Test item could not be found.')
 
@@ -100,7 +105,7 @@ def test_forecast_test_generator():
 
     for city in corefunctions.all_cities:
         # By using .get, either the record or None will be returned.
-        querySet = Forecast.objects.get(city=city)
+        querySet = Forecast.objects.filter(city=city).count()
         testString = f'test_{city}'
 
         # By using .get when creating querySet, the test in essence has
@@ -113,5 +118,5 @@ def test_forecast_test_generator():
                     base_test(False, failMessage))
 
 
-# test_cities_test_generator()
-# test_forecast_test_generator()
+test_cities_test_generator()
+test_forecast_test_generator()

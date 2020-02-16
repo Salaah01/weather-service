@@ -114,8 +114,7 @@ class UnitConversion:
 
             else:
                 raise ValueError(
-                    f'Could not find datetime in the string provided \
-                    ({self.value}).')
+                    f'Could not find datetime in the string provided ({self.value}).')
 
             if self.newUnit == 'datetime':
                 return datetimeVal

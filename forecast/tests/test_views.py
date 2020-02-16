@@ -26,12 +26,12 @@ class TestPing(SimpleTestCase):
         client = Client()
         self.response = client.get(reverse('ping'))
 
-    def zzztest_ping_loads(self):
+    def test_ping_loads(self):
         """Test that the ping view loads."""
 
         self.assertEquals(self.response.status_code, 200)
 
-    def zzztest_ping_content(self):
+    def test_ping_content(self):
         """Test that the ping view's content is correct."""
         with open(os.path.join(os.getcwd(), 'VERSION'), 'r') as f:
             version = f.read()
@@ -53,14 +53,12 @@ class TestForcast(SimpleTestCase):
         """Sets up for each test"""
         self.client = Client()
 
-    def zzztest_invalid_city(self):
+    def test_invalid_city(self):
         """Test that an invalid city would return a 404 with an error message
         in the content.
         """
         response = self.client.get(reverse('forecast', args=['westeros']))
         content = json.loads(response.content)
-
         self.assertEquals(response.status_code, 404)
-        self.assertEquals(content['error'], "Cannot find city 'westeros")
+        self.assertEquals(content['error'], "Cannot find city 'westeros'")
         self.assertEquals(content['error_code'], 'city not found')
-
