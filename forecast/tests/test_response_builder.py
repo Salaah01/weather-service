@@ -125,7 +125,7 @@ class TestResponseBuilder(TestCase):
 
         self.assertEquals(
             responseContent['temperature'],
-            1,
+            '-272.15C',
             "Method did not return first record where len(querySet)=1"
         )
 
@@ -143,7 +143,7 @@ class TestResponseBuilder(TestCase):
 
         self.assertEquals(
             responseContent['temperature'],
-            2,
+            '-271.15C',
             "Method did not return the 2nd querySet where len(querySet)=3"
         )
 
@@ -169,7 +169,7 @@ class TestResponseBuilder(TestCase):
 
         self.assertEquals(
             responseContent['temperature'],
-            2,
+            '-271.15C',
             "Method did not return the 2nd querySet where len(querySet)=3 \
             where the 2nd item is closest to the desired forecast date."
         )
@@ -181,22 +181,20 @@ class TestResponseBuilder(TestCase):
         """
 
         expectedResults = {
-            'humidity': 1,
-            'pressure': 2,
-            'temperature': 3,
-            'clouds': 4
+            'humidity': 1.2,
+            'pressure': 1.3,
+            'temperature': '-270.15C',
+            'clouds': 5.5
         }
 
-        newItem = Forecast.objects.create(
-            humidity=expectedResults['humidity'],
-            pressure=expectedResults['pressure'],
-            temperature=expectedResults['temperature'],
+        Forecast.objects.create(
+            humidity=10,
+            pressure=12,
+            temperature=3,
             forecast_for=corefunctions.date_to_int(datetime.now()),
             city=Cities.objects.get(name='london'),
-            clouds=expectedResults['clouds']
-        )
-
-        newItem.save()
+            clouds=5
+        ).newItem.save()
 
         response = self.client.get(reverse('forecast', args=['london']))
         responseContent = json.loads(response.content)
@@ -248,19 +246,18 @@ class TestResponseBuilder(TestCase):
         response = self.client.get(
             reverse('forecast', args=['london']) + '?at=2020-02-16')
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], 1)
+        self.assertEquals(responseContent['temperature'], '-272.15C')
 
         # Check that an "at" paramater in the URL with a date in the format
         # YYYY-MM-DDTHH:MM:SSZ is handled correctly.
-        print('READY ==================================')
         response = self.client.get(
             reverse('forecast', args=['london']) + '?at=2020-02-15T02:00:00Z')
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], 2)
+        self.assertEquals(responseContent['temperature'], '-271.15C')
 
         # Check that an "at" paramater in the URL with a date in the format
         # YYYY-MM-DDTHH:MM:SS+HH:MM is handled correctly.
         response = self.client.get(
             reverse('forecast', args=['london']) + '?at=2020-02-15T20:53:15-15:52')
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], 3)
+        self.assertEquals(responseContent['temperature'], '-270.15C')

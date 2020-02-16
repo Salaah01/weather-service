@@ -14,6 +14,7 @@ try:
 except ModuleNotFoundError:
     from date_to_int import date_to_int
 
+
 class UnitConversion:
     """Contains methods that will convert a value of a certain unit to
     another type of unit..
@@ -47,10 +48,68 @@ class UnitConversion:
     def convert_temperature(self):
         """Converts temperatures to new units."""
         converted = False
+
+        # Convert Kelvin (K) to Celsius (C)
         if self.initialUnit == 'K' and self.newUnit == 'C':
             convertedValue = round(self.value - 273.15, self.maxPrecision)
             converted = True
 
+        # Convert Celsius (C) to Kelvin (K)
+        elif self.initialUnit == 'C' and self.newUnit == 'K':
+            convertedValue = round(self.value + 273.15, self.maxPrecision)
+            converted = True
+
+        # Convert Kelvin (K) to Fahrenheit (F)
+        if self.initialUnit == 'K' and self.newUnit == 'F':
+            convertedValue = round(
+                self.value * 9 / 5 - 459.67,
+                self.maxPrecision
+            )
+            converted = True
+
+        # Check if value has been converted, raise a ValueError.
+        if converted:
+            if self.showUnits:
+                return f'{convertedValue}{self.newUnit}'
+            else:
+                return convertedValue
+
+        else:
+            raise ValueError(
+                f'temperature convert of {self.initialUnit} to {self.newUnit} \
+                is not supported.'
+            )
+
+    def convert_pressure(self):
+        """Converts pressure units"""
+        converted = False
+
+        # Convert hectopascals (hPa) to pascals (Pa)
+        if self.initialUnit == 'hPa' and self.newUnit == 'Pa':
+            convertedValue = self.value * 100
+            converted = True
+
+        # Convert hectopascals (hPa) to bar (bar)
+        elif self.initialUnit == 'hPa' and self.newUnit == 'bar':
+            convertedValue = self.value / 1000
+            converted = True
+
+        # Convert hectopascals (hPa) to standard atmosphere (atm)
+        elif self.initialUnit == 'hPa' and self.newUnit == 'atm':
+            convertedValue = round(self.value / 1013.25, self.maxPrecision)
+            converted = True
+
+        # Convert hectopascals (hPa) to torr (Torr)
+        elif self.initialUnit == 'hPa' and self.newUnit == 'Torr':
+            convertedValue = round(self.value / 1.33, self.maxPrecision)
+            converted = True
+
+        # Convert hectopascals (hPa) to pound per square inch (psi)
+        elif self.initialUnit == 'hPa' and self.newUnit == 'psi':
+            convertedValue = round(self.value / 68.95, self.maxPrecision)
+            converted = True
+
+        # If the value has not been converted, raise a ValueError.
         if converted:
             if self.showUnits:
                 return f'{convertedValue}{self.newUnit}'
@@ -121,8 +180,15 @@ class UnitConversion:
             elif self.newUnit == 'int':
                 return date_to_int(datetimeVal)
 
+        if not converted:
+            raise ValueError(
+                f'date string conversion of {self.initialUnit} to \
+                {self.newUnit} is not supported.'
+            )
+
 
 if __name__ == "__main__":
     print(
-        UnitConversion('2020-02-15T02:00:00Z', 'unknown', 'int').convert_date_string()
+        UnitConversion('2020-02-15T02:00:00Z', 'unknown',
+                       'int').convert_date_string()
     )

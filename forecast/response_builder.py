@@ -9,7 +9,7 @@ import time
 import json
 
 # Third Party Imports
-from django.http import HttpResponse, HttpResponseServerError
+from django.http import HttpResponse, HttpResponseServerError, HttpResponseBadRequest
 import requests
 
 # Local Imports
@@ -84,6 +84,9 @@ class ResponseBuilder:
 
             # Convert the querySet to a dictionary
             querySet = self.queryset_to_dict(querySet)
+
+            # Configure units in accordance to the paramaters set in the URL.
+            querySet = self.format_units(querySet)
 
             return HttpResponse(json.dumps(querySet))
 
@@ -163,20 +166,13 @@ class ResponseBuilder:
                     time.localtime(data['dt'])
                 )
 
-                # Convert the temperature from Kelvins to Celsius.
-                temperature = corefunctions.UnitConversion(
-                    data['main']['temp'],
-                    'K',
-                    'C'
-                ).convert_temperature()
-
                 newData = Forecast.objects.create(
                     city_id=city,
                     forecast_for=forecastDate,
                     humidity=data['main']['humidity'],
                     pressure=data['main']['pressure'],
                     clouds=data['clouds']['all'],
-                    temperature=temperature
+                    temperature=data['main']['temp']
                 )
                 newData.save()
 
@@ -215,6 +211,82 @@ class ResponseBuilder:
         fields = ['humidity', 'pressure', 'temperature', 'clouds']
 
         return {field: getattr(querySet, field) for field in fields}
+
+    def format_units(self, querySet):
+        """Checks the paramters defined in the URL for any any units that need
+        to be converted amd adds the unit type at the end of each unit.
+        """
+
+        # Add the "%" unit symbol to humidity
+        querySet['humidity'] = str(querySet['humidity']) + '%'
+
+        # Format temperature units.
+        # Temperature is stored as kelvins in the database.
+        # As a default, the HTTP response will display temperature as celsius.
+        if self.request.get('temp_units'):
+            temp_units = self.request.get('temp_units')
+
+            # Validate the units.
+            if temp_units not in ('K', 'C'):
+                raise HttpResponseBadRequest
+
+            if temp_units == 'K':
+                querySet['temperature'] = str(querySet['temperature']) + 'K'
+            else:
+                querySet['temperature'] = corefunctions.UnitConversion(
+                    querySet['temperature'],
+                    'K',
+                    'C',
+                    showUnits=True
+                ).convert_temperature()
+
+        else:
+            querySet['temperature'] = corefunctions.UnitConversion(
+                querySet['temperature'],
+                'K',
+                'C',
+                showUnits=True
+            ).convert_temperature()
+
+        # Format temperature units.
+        # Temperature is stored as kelvins in the database.
+        if self.request.get('pressure_units'):
+            pressureUnits = self.request.get('pressure_units')
+
+            # Validate the units.
+            supportedUnits = ['Pa', 'bar', 'atm', 'Torr', 'psi', 'hPa']
+            if pressureUnits not in supportedUnits:
+                raise HttpResponseBadRequest
+
+            # hPa is the default unit, so no conversions will take place for
+            # hPa.
+            if pressureUnits == 'hPa':
+                querySet['pressure'] = str(querySet['pressure']) + 'hPa'
+            else:
+                querySet['pressure'] = corefunctions.UnitConversion(
+                    querySet['pressure'],
+                    'hPa',
+                    pressureUnits,
+                    showUnits=True
+                ).convert_pressure()
+
+        else:
+            querySet['pressure'] = str(querySet['pressure']) + 'hPa'
+
+
+        # Format Cloud Value
+        if querySet['clouds'] <= 10:
+            querySet['clouds'] = 'clear sky'
+        elif querySet['clouds'] <= 36:
+            querySet['clouds'] = 'few clouds'
+        elif querySet['clouds'] <= 60:
+            querySet['clouds'] = 'scattered clouds'
+        elif querySet['clouds'] <= 84:
+            querySet['clouds'] = 'broken clouds'
+        else:
+            querySet['clouds'] = 'overcast'
+
+        return querySet
 
     def get_response(self):
         """Gets the HTTP response"""

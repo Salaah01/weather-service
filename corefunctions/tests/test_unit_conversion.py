@@ -9,39 +9,19 @@ Included tests:
 # IMPORTS
 # Python Core Imports
 import unittest
-from datetime import datetime
 
 # Third Party Imports
 
 # Local Imports
-import corefunctions
 from .convert_date_string_testcases import testcases as convertDateStringTests
+from .convert_temperature_testcases import testcases as convertTemperatureTests
 
 
 class TestUnitConversion(unittest.TestCase):
-    """Tests each method in the UnitConversion class."""
-
-    def test_convert_temperature(self):
-        """Tests the convert temperature method."""
-
-        # Each item in testcases is a tuple of size 2, where the first element
-        # in the tuple is the actual result and the second element is the
-        # expected result.
-        testcases = [
-            (
-                corefunctions.UnitConversion(
-                    99, 'K', 'C').convert_temperature(),
-                -174.15
-            ),
-            (
-                corefunctions.UnitConversion(
-                    99, 'K', 'C', 1, True).convert_temperature(),
-                '-174.1C'
-            )
-        ]
-
-        for testcase in testcases:
-            self.assertEquals(testcase[0], testcase[1])
+    """Tests each method in the UnitConversion class.
+    Empty class object where test generators will be used to build the class
+    with tests.
+    """
 
 
 def base_test(actualResult, expectedResult, failMessage=None):
@@ -52,7 +32,7 @@ def base_test(actualResult, expectedResult, failMessage=None):
     return test
 
 
-def test_convert_date_string_generator():
+def convert_date_string_test_generator():
     """Generates tests to be attached to the TestUnitConversion.
     These tests will check that the convert_date_string method is able convert
     dates in various to a datetime object and a integer in the format
@@ -73,4 +53,27 @@ def test_convert_date_string_generator():
         )
 
 
-test_convert_date_string_generator()
+def convert_temperature_test_generator():
+    """Generates tests to be attached to the TestUnitConversion.
+    These tests will check that the convert_temperature method is able convert
+    units correctly. The test will check the following conversions are done
+    correctly:
+        * Kelvin (K) to Celsius (C)
+        * Celsius (C) to Kelvin (K)
+    """
+
+    # Add testcases to TestUnitConversion
+    for idx, testcase in enumerate(convertTemperatureTests):
+        setattr(
+            TestUnitConversion,
+            f'test_convert_date_string_{idx}',
+            base_test(
+                testcase['actual'],
+                testcase['expected'],
+                testcase['failMessage']
+            )
+        )
+
+
+convert_date_string_test_generator()
+convert_temperature_test_generator()
