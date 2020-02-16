@@ -395,7 +395,7 @@ class TestResponseBuilder(TestCase):
         ).save()
 
         # Check that valid units to do return a error
-        for unit in ['pa', 'bar', 'atm', 'torr', 'psi', 'hpa']:
+        for unit in ['pa', 'bar', 'atm', 'torr', 'psi']:
             response = self.client.get(
                 reverse('forecast', args=['london']) + f'?pressure_units={unit}'
             )

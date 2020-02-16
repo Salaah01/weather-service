@@ -15,7 +15,6 @@ import requests
 # Local Imports
 from . import config
 import corefunctions
-from weather_service.settings import DEBUG
 from .models import Forecast
 
 
@@ -31,17 +30,11 @@ class ResponseBuilder:
         self.request = request.GET
         self.city = city
 
-        # Will be build dynamically with information regarding any units
-        # need to be converted. e.g: for temperature, convert celsius to
-        # fahrenheit.
-        self.paramaters = {}
-
         # Build the response
         self._response = self._set_response()
 
     def _set_response(self):
         """Sets the HTTP response"""
-
         # If the city is not valid, then return a 404.
         # This can be queried against the database, but there is a finite
         # number of cities and so this avoids a database call by checking
@@ -95,7 +88,6 @@ class ResponseBuilder:
 
             else:
                 forecastDate = datetime.now()
-            self.paramaters['at'] = corefunctions.date_to_int(forecastDate)
 
             # Retrieve the forecast data
             querySet = self.forecast_data(forecastDate)
@@ -176,7 +168,8 @@ class ResponseBuilder:
         # that the API URL defined in the config is correct as is the city
         # name.
         if not response.status_code == 200:
-            raise HttpResponseServerError()
+            raise Exception(HttpResponseServerError())
+
         else:
             apiData = json.loads(response.content)['list']
             for data in apiData:

@@ -126,8 +126,8 @@ class UnitConversion:
 
         else:
             raise ValueError(
-                f'temperature convert of {self.initialUnit} to {self.newUnit} \
-                is not supported.'
+                f'Pressure convert of {self.initialUnit} to {self.newUnit} \
+                is not supported.'.replace('\t', '')
             )
 
     def convert_date_string(self):
