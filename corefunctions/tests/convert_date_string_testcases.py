@@ -74,4 +74,16 @@ testcases = [
                                  'int').convert_date_string(),
         'expected': 201701011122
     },
+    {
+        'actual': UnitConversion('2020-02-15T20:53:15 01:00',
+                                 'unknown',
+                                 'datetime').convert_date_string(),
+        'expected': datetime(2020, 2, 15, 19, 53, 15)
+    },
+    {
+        'actual': UnitConversion('2020-02-15T20:53:15 01:00',
+                                 'unknown',
+                                 'int').convert_date_string(),
+        'expected': 202002151953
+    }
 ]

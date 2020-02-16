@@ -40,8 +40,8 @@ class UnitConversion:
         showUnits=False
     ):
         self.value = value
-        self.initialUnit = initialUnit
-        self.newUnit = newUnit
+        self.initialUnit = initialUnit.lower()
+        self.newUnit = newUnit.lower()
         self.maxPrecision = maxPrecision
         self.showUnits = showUnits
 
@@ -50,17 +50,17 @@ class UnitConversion:
         converted = False
 
         # Convert Kelvin (K) to Celsius (C)
-        if self.initialUnit == 'K' and self.newUnit == 'C':
+        if self.initialUnit == 'k' and self.newUnit == 'c':
             convertedValue = round(self.value - 273.15, self.maxPrecision)
             converted = True
 
         # Convert Celsius (C) to Kelvin (K)
-        elif self.initialUnit == 'C' and self.newUnit == 'K':
+        elif self.initialUnit == 'c' and self.newUnit == 'k':
             convertedValue = round(self.value + 273.15, self.maxPrecision)
             converted = True
 
         # Convert Kelvin (K) to Fahrenheit (F)
-        if self.initialUnit == 'K' and self.newUnit == 'F':
+        if self.initialUnit == 'k' and self.newUnit == 'f':
             convertedValue = round(
                 self.value * 9 / 5 - 459.67,
                 self.maxPrecision
@@ -70,7 +70,7 @@ class UnitConversion:
         # Check if value has been converted, raise a ValueError.
         if converted:
             if self.showUnits:
-                return f'{convertedValue}{self.newUnit}'
+                return f'{convertedValue}{self.newUnit.upper()}'
             else:
                 return convertedValue
 
@@ -85,34 +85,42 @@ class UnitConversion:
         converted = False
 
         # Convert hectopascals (hPa) to pascals (Pa)
-        if self.initialUnit == 'hPa' and self.newUnit == 'Pa':
+        if self.initialUnit == 'hpa' and self.newUnit == 'pa':
             convertedValue = self.value * 100
             converted = True
 
         # Convert hectopascals (hPa) to bar (bar)
-        elif self.initialUnit == 'hPa' and self.newUnit == 'bar':
+        elif self.initialUnit == 'hpa' and self.newUnit == 'bar':
             convertedValue = self.value / 1000
             converted = True
 
         # Convert hectopascals (hPa) to standard atmosphere (atm)
-        elif self.initialUnit == 'hPa' and self.newUnit == 'atm':
+        elif self.initialUnit == 'hpa' and self.newUnit == 'atm':
             convertedValue = round(self.value / 1013.25, self.maxPrecision)
             converted = True
 
         # Convert hectopascals (hPa) to torr (Torr)
-        elif self.initialUnit == 'hPa' and self.newUnit == 'Torr':
+        elif self.initialUnit == 'hpa' and self.newUnit == 'torr':
             convertedValue = round(self.value / 1.33, self.maxPrecision)
             converted = True
 
         # Convert hectopascals (hPa) to pound per square inch (psi)
-        elif self.initialUnit == 'hPa' and self.newUnit == 'psi':
+        elif self.initialUnit == 'hpa' and self.newUnit == 'psi':
             convertedValue = round(self.value / 68.95, self.maxPrecision)
             converted = True
 
         # If the value has not been converted, raise a ValueError.
         if converted:
             if self.showUnits:
-                return f'{convertedValue}{self.newUnit}'
+                unitCorrectFormat = {
+                    'pa': 'Pa',
+                    'bar': 'bar',
+                    'atm': 'atm',
+                    'hpa': 'hPa',
+                    'torr': 'Torr',
+                    'psi': 'psi'
+                }
+                return f'{convertedValue}{unitCorrectFormat[self.newUnit]}'
             else:
                 return convertedValue
 
@@ -146,22 +154,27 @@ class UnitConversion:
                     '%Y-%m-%dT%H:%M:%SZ'
                 )
 
-            # example pattern: 2020-02-15T20:53:15+00:00
+            # example patterns:
+            #   - 2020-02-15T20:53:15-00:00,
+            #    - 2020-02-15T20:53:15+00:00,
+            #    - 2020-02-15T20:53:15 00:00
+            # Need to handle a pattern without a + / - sign despite this not
+            # being IS0-8601 because a "+" in a URL gets converted to a space.
             elif re.match(
-                '^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(([01]\d)|2[0-3]):(([0-5]\d)):(([0-5]\d))[+-](([0-5]\d)):(([0-5]\d)))$',
+                '^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(([01]\d)|2[0-3]):(([0-5]\d)):(([0-5]\d))[ +-](([0-5]\d)):(([0-5]\d)))$',
                 self.value
             ):
                 timeSection = datetime.strptime(
                     self.value[0:-6], '%Y-%m-%dT%H:%M:%S')
-                tzAddHours = self.value[-6] == '+'
+                tzAddHours = self.value[-6] in ['+', ' ']
                 tzHours = int(self.value[20:22])
                 tzMins = int(self.value[23:])
 
                 if tzAddHours:
-                    datetimeVal = timeSection + \
+                    datetimeVal = timeSection - \
                         timedelta(hours=tzHours, minutes=tzMins)
                 else:
-                    datetimeVal = timeSection - \
+                    datetimeVal = timeSection + \
                         timedelta(hours=tzHours, minutes=tzMins)
 
             # pattern example: 20200215T205315Z
@@ -188,7 +201,5 @@ class UnitConversion:
 
 
 if __name__ == "__main__":
-    print(
-        UnitConversion('2020-02-15T02:00:00Z', 'unknown',
-                       'int').convert_date_string()
-    )
+    print(UnitConversion('2020-02-15T20:53:15 01:00', 'unknown',
+                         'int').convert_date_string())

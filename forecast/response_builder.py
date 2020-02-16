@@ -41,22 +41,25 @@ class ResponseBuilder:
 
     def _set_response(self):
         """Sets the HTTP response"""
-        contentType = 'application/json; charset=utf-8'
 
         # If the city is not valid, then return a 404.
         # This can be queried against the database, but there is a finite
         # number of cities and so this avoids a database call by checking
         # a local file.
         if self.city not in corefunctions.all_cities:
-            content = json.dumps({
+            response = {
                 "error": f"Cannot find city '{self.city}'",
                 "error_code": "city not found"
-            })
-            return HttpResponse(content, contentType, 404)
+            }
+
+            return self.format_json_response(response, 404)
+
         else:
             # Check if there is a date, if so, convert the date before
             # continuing.
             if self.request.get('at'):
+
+                # Try and except to handle an invalid date
                 try:
                     forecastDate = corefunctions.UnitConversion(
                         self.request.get('at'),
@@ -64,8 +67,32 @@ class ResponseBuilder:
                         'datetime'
                     ).convert_date_string()
                 except ValueError:
-                    raise
-                pass
+                    response = {
+                        'error': 'Invalid date format, use ISO 8601',
+                        'error_code': 'invalid date'
+                    }
+                    return self.format_json_response(response, 400)
+
+                # If the date is in the past or greater than the latest
+                # forecast available, return a 400.
+                now = datetime.now()
+                minDate = datetime(now.year, now.month, now.day)
+                maxDate = now + timedelta(days=config.MAX_FORCAST_DAYS)
+
+                if forecastDate < minDate:
+                    response = {
+                        'error': 'Date is in the past',
+                        'error_code': 'invalid date'
+                    }
+                    return self.format_json_response(response, 400)
+
+                elif forecastDate > maxDate:
+                    response = {
+                        'error': f'Only able to forecast up to {config.MAX_FORCAST_DAYS} days',
+                        'error_code': 'invalid date'
+                    }
+                    return self.format_json_response(response, 400)
+
             else:
                 forecastDate = datetime.now()
             self.paramaters['at'] = corefunctions.date_to_int(forecastDate)
@@ -88,7 +115,7 @@ class ResponseBuilder:
             # Configure units in accordance to the paramaters set in the URL.
             querySet = self.format_units(querySet)
 
-            return HttpResponse(json.dumps(querySet))
+            return querySet
 
     def forecast_data(self, forecastDate):
         """Given a city (string) and a forecast time (int in the format
@@ -149,9 +176,7 @@ class ResponseBuilder:
         # that the API URL defined in the config is correct as is the city
         # name.
         if not response.status_code == 200:
-            if DEBUG:
-                return HttpResponse(response.content, status=500)
-            raise HttpResponseServerError
+            raise HttpResponseServerError()
         else:
             apiData = json.loads(response.content)['list']
             for data in apiData:
@@ -224,19 +249,24 @@ class ResponseBuilder:
         # Temperature is stored as kelvins in the database.
         # As a default, the HTTP response will display temperature as celsius.
         if self.request.get('temp_units'):
-            temp_units = self.request.get('temp_units')
+            tempUnits = self.request.get('temp_units')
 
             # Validate the units.
-            if temp_units not in ('K', 'C'):
-                raise HttpResponseBadRequest
+            if tempUnits not in ('K', 'C', 'F'):
+                response = {
+                    'error': 'Invalid temperature units',
+                    'error_code': 'invalid_units'
+                }
 
-            if temp_units == 'K':
+                return self.format_json_response(response, 400)
+
+            if tempUnits == 'K':
                 querySet['temperature'] = str(querySet['temperature']) + 'K'
             else:
                 querySet['temperature'] = corefunctions.UnitConversion(
                     querySet['temperature'],
                     'K',
-                    'C',
+                    tempUnits,
                     showUnits=True
                 ).convert_temperature()
 
@@ -251,12 +281,17 @@ class ResponseBuilder:
         # Format temperature units.
         # Temperature is stored as kelvins in the database.
         if self.request.get('pressure_units'):
-            pressureUnits = self.request.get('pressure_units')
+            pressureUnits = self.request.get('pressure_units').lower()
 
             # Validate the units.
-            supportedUnits = ['Pa', 'bar', 'atm', 'Torr', 'psi', 'hPa']
+            supportedUnits = ['pa', 'bar', 'atm', 'torr', 'psi', 'hpa']
             if pressureUnits not in supportedUnits:
-                raise HttpResponseBadRequest
+                response = {
+                    'error': 'Invalid pressure units',
+                    'error_code': 'invalid_units'
+                }
+
+                return self.format_json_response(response, 400)
 
             # hPa is the default unit, so no conversions will take place for
             # hPa.
@@ -273,7 +308,6 @@ class ResponseBuilder:
         else:
             querySet['pressure'] = str(querySet['pressure']) + 'hPa'
 
-
         # Format Cloud Value
         if querySet['clouds'] <= 10:
             querySet['clouds'] = 'clear sky'
@@ -286,7 +320,31 @@ class ResponseBuilder:
         else:
             querySet['clouds'] = 'overcast'
 
-        return querySet
+        return self.format_json_response(querySet, 200)
+
+    @staticmethod
+    def format_json_response(response=None, status=200):
+        """Using the arguments returns a HTTP response.
+        response [dict]: response to be converted to JSON.
+        status [int]: HTTP status code.
+        """
+        contentType = 'application/json; charset=utf-8'
+
+        if response:
+            return HttpResponse(
+                json.dumps(response),
+                status=status,
+                content_type=contentType,
+            )
+
+        # Handle generic errors
+        if status == 500:
+            return HttpResponse(
+                json.dumps({
+                    'error': 'Something went wrong',
+                    'error_code': 'internal server error'
+                })
+            )
 
     def get_response(self):
         """Gets the HTTP response"""

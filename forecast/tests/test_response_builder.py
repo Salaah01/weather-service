@@ -10,7 +10,21 @@ The module includes the following test:
 
     * test_valid_response:
         Check that the module returns the correct response.
+        Also test that an invald format returns a 400 HTTP response.
 
+    * test_temperature_valid_units:
+        Checks that when when valid units are passed into in as "temp_units"
+        in the URL, a 200 HTTP response is returned.
+
+    * test_temperature_invalid_unit:
+        Test that invalid temperature units in the URL return a 400 response.
+
+    * test_pressure_valid_units:
+        Checks that when when valid units are passed into in as
+        "pressure_units" in the URL, a 200 HTTP response is returned.
+
+    * test_pressure_invalid_unit:
+        Test that invalid pressure units in the URL return a 400 response.
 """
 
 # IMPORTS
@@ -31,7 +45,9 @@ from ..models import Cities, Forecast
 
 
 class TestResponseBuilder(TestCase):
-    #     """Unittests for the ResponseBuilder module"""
+    """Unittests for the ResponseBuilder module"""
+
+    now = datetime.now()
 
     def setUp(self):
         """Sets up for each test"""
@@ -114,17 +130,14 @@ class TestResponseBuilder(TestCase):
 
         # Test that where there is only one item in the querySet list,
         # that item is returned.
-        forecastDate = corefunctions.date_to_int(
-            datetime.now() -
-            timedelta(days=3)
-        )
+        forecastDate = corefunctions.date_to_int(self.now - timedelta(days=3))
         new_db_item(1)
 
         response = self.client.get(reverse('forecast', args=['london']))
         responseContent = json.loads(response.content)
 
         self.assertEquals(
-            responseContent['temperature'],
+            responseContent.get('temperature'),
             '-272.15C',
             "Method did not return first record where len(querySet)=1"
         )
@@ -132,17 +145,14 @@ class TestResponseBuilder(TestCase):
         # Test that where is this 3 items querySet list where the second item
         # is closesest to the desired forecast date, that the second querySet
         # item is returned.
-        forecastDate = corefunctions.date_to_int(
-            datetime.now() -
-            timedelta(days=-2)
-        )
+        forecastDate = corefunctions.date_to_int(self.now - timedelta(days=-2))
         new_db_item(2)
 
         response = self.client.get(reverse('forecast', args=['london']))
         responseContent = json.loads(response.content)
 
         self.assertEquals(
-            responseContent['temperature'],
+            responseContent.get('temperature'),
             '-271.15C',
             "Method did not return the 2nd querySet where len(querySet)=3"
         )
@@ -151,24 +161,17 @@ class TestResponseBuilder(TestCase):
         # the last item is returned where the last item is closest to the
         # desired forecast date.
 
-        forecastDate = corefunctions.date_to_int(
-            datetime.now() -
-            timedelta(days=1)
-        )
+        forecastDate = corefunctions.date_to_int(self.now - timedelta(days=1))
         new_db_item(2)
 
-        forecastDate = corefunctions.date_to_int(
-            datetime.now() -
-            timedelta(days=10)
-        )
-
+        forecastDate = corefunctions.date_to_int(self.now - timedelta(days=10))
         new_db_item(2)
 
         response = self.client.get(reverse('forecast', args=['london']))
         responseContent = json.loads(response.content)
 
         self.assertEquals(
-            responseContent['temperature'],
+            responseContent.get('temperature'),
             '-271.15C',
             "Method did not return the 2nd querySet where len(querySet)=3 \
             where the 2nd item is closest to the desired forecast date."
@@ -181,10 +184,10 @@ class TestResponseBuilder(TestCase):
         """
 
         expectedResults = {
-            'humidity': 1.2,
-            'pressure': 1.3,
+            'humidity': '10.0%',
+            'pressure': '12.0hPa',
             'temperature': '-270.15C',
-            'clouds': 5.5
+            'clouds': 'clear sky'
         }
 
         Forecast.objects.create(
@@ -194,7 +197,7 @@ class TestResponseBuilder(TestCase):
             forecast_for=corefunctions.date_to_int(datetime.now()),
             city=Cities.objects.get(name='london'),
             clouds=5
-        ).newItem.save()
+        ).save()
 
         response = self.client.get(reverse('forecast', args=['london']))
         responseContent = json.loads(response.content)
@@ -207,18 +210,30 @@ class TestResponseBuilder(TestCase):
     def test_valid_response_time_query(self):
         """Given at time value "at" in the GET request, test that the correct
         response is returned.
-        """
+        The following tests are included:
+            - Method can handle date in the format YYYY-MM-DD
+            - Method can handle date in toe format YYYY-NN-DDTHH:MM:SSZ
+            - Method can handle date in toe format YYYY-NN-DDTHH:MM:SS+hh:MM
+            - Method can handle date in toe format YYYY-NN-DDTHH:MM:SS-hh:MM
+            - Method returns HTTP 400 if the data does not match one of the
+              ISO-8601 formats.
+            - Method returns HTTP 400 response for a date in the past.
+            - Method returns HTTP 400 response for a date too far into the
+              future.
 
+        """
         # By setting a high API_TIME_INTERVAL_MINS value, the module
         # will not call the API to fetch new values.
         config.API_TIME_INTERVAL_MINS = 100000
+
 
         # Populating the database with some data.
         Forecast.objects.create(
             humidity=1,
             pressure=1,
-            temperature=1,
-            forecast_for=202002160100,
+            temperature=1,  # -273.15C
+            forecast_for=corefunctions.date_to_int(self.now
+                                                   + timedelta(days=1)),
             clouds=1,
             city=Cities.objects.get(name='london')
         ).save()
@@ -226,8 +241,9 @@ class TestResponseBuilder(TestCase):
         Forecast.objects.create(
             humidity=2,
             pressure=2,
-            temperature=2,
-            forecast_for=202002150200,
+            temperature=2,  # -271.15C
+            forecast_for=corefunctions.date_to_int(self.now
+                                                   + timedelta(days=2, hours=2)),
             clouds=2,
             city=Cities.objects.get(name='london')
         ).save()
@@ -235,29 +251,174 @@ class TestResponseBuilder(TestCase):
         Forecast.objects.create(
             humidity=3,
             pressure=3,
-            temperature=3,
-            forecast_for=202002150500,
+            temperature=3,  # -270.15C
+            forecast_for=corefunctions.date_to_int(self.now
+                                                   + timedelta(days=3)),
             clouds=3,
             city=Cities.objects.get(name='london')
         ).save()
 
         # Check that an "at" paramater in the URL with a date in the format
         # YYYY-MM-DD is handled correctly.
+        forecastDateQ = (self.now + timedelta(days=1)).strftime('?at=%Y-%m-%d')
         response = self.client.get(
-            reverse('forecast', args=['london']) + '?at=2020-02-16')
+            reverse('forecast', args=['london']) + forecastDateQ
+        )
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], '-272.15C')
+        self.assertEquals(
+            responseContent.get('temperature'),
+            '-272.15C',
+            f"actual content=\n{responseContent}"
+        )
 
         # Check that an "at" paramater in the URL with a date in the format
         # YYYY-MM-DDTHH:MM:SSZ is handled correctly.
+        forecastDateQ = (self.now + timedelta(days=2))
+        forecastDateQ = forecastDateQ.strftime('?at=%Y-%m-%dT02:02:00Z')
         response = self.client.get(
-            reverse('forecast', args=['london']) + '?at=2020-02-15T02:00:00Z')
+            reverse('forecast', args=['london']) + forecastDateQ
+        )
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], '-271.15C')
+        self.assertEquals(
+            responseContent.get('temperature'),
+            '-271.15C',
+            f"actual content:\n{responseContent}\ndate query:\n{forecastDateQ}"
+        )
 
         # Check that an "at" paramater in the URL with a date in the format
         # YYYY-MM-DDTHH:MM:SS+HH:MM is handled correctly.
+        forecastDateQ = (self.now + timedelta(days=3))
+        forecastDateQ = forecastDateQ.strftime('?at=%Y-%m-%dT00:00:00+12:00')
         response = self.client.get(
-            reverse('forecast', args=['london']) + '?at=2020-02-15T20:53:15-15:52')
+            reverse('forecast', args=['london']) + forecastDateQ
+        )
         responseContent = json.loads(response.content)
-        self.assertEquals(responseContent['temperature'], '-270.15C')
+        self.assertEquals(
+            responseContent.get('temperature'),
+            '-271.15C',
+            f"actual content:\n{responseContent}\ndate query:\n{forecastDateQ}"
+        )
+
+        # Check that an "at" paramater in the URL with a date in the format
+        # YYYY-MM-DDTHH:MM:SS+HH:MM is handled correctly.
+        forecastDateQ = (self.now + timedelta(days=1))
+        forecastDateQ = forecastDateQ.strftime('?at=%Y-%m-%dT00:00:00-02:00')
+        response = self.client.get(
+            reverse('forecast', args=['london']) + forecastDateQ
+        )
+        responseContent = json.loads(response.content)
+        self.assertEquals(
+            responseContent.get('temperature'),
+            '-272.15C',
+            f"actual content:\n{responseContent}\ndate query:\n{forecastDateQ}"
+        )
+
+        # Check that an "at" paramater in the URL with an invalid date returns a
+        # 400 HTTP response.
+        response = self.client.get(
+            reverse('forecast', args=['london']) + '?at=inthefuture'
+        )
+        responseContent = json.loads(response.content)
+        self.assertEquals(
+            responseContent.get('error_code'),
+            'invalid date',
+            f"actual content:\n{responseContent}"
+        )
+
+        # Check that an "at" paramater in the URL with a date in the past
+        # returns a 400 HTTP response.
+        response = self.client.get(
+            reverse('forecast', args=['london']) + '?at=2015-02-15'
+        )
+        responseContent = json.loads(response.content)
+        self.assertEquals(
+            responseContent.get('error_code'),
+            'invalid date',
+            f"actual content:\n{responseContent}"
+        )
+
+    def test_temperature_valid_units(self):
+        """Checks that when "temp_units" are passed into the URL, the module
+        checks if the units are valid and responds accordingly.
+        """
+        # Populating the database with some data.
+        Forecast.objects.create(
+            humidity=1,
+            pressure=1,
+            temperature=1,  # -273.15C
+            forecast_for=corefunctions.date_to_int(self.now),
+            clouds=1,
+            city=Cities.objects.get(name='london')
+        ).save()
+
+        # Check that valid units to do return a error
+        for unit in ['C', 'K', 'F']:
+            response = self.client.get(
+                reverse('forecast', args=['london']) + f'?temp_units={unit}'
+            )
+            self.assertEquals(
+                response.status_code,
+                200,
+                f'querying with {unit} unit did not return a 200 response'
+            )
+
+    def test_temperature_invalid_unit(self):
+        """Test that invalid temperature units in the URL return a 400
+        response.
+        """
+        # Populating the database with some data.
+        Forecast.objects.create(
+            humidity=1,
+            pressure=1,
+            temperature=1,  # -273.15C
+            forecast_for=corefunctions.date_to_int(self.now),
+            clouds=1,
+            city=Cities.objects.get(name='london')
+        ).save()
+        response = self.client.get(
+            reverse('forecast', args=['london']) + f'?temp_units=beans'
+        )
+        self.assertEquals(response.status_code, 400)
+
+    def test_pressure_valid_units(self):
+        """Checks that when "pressure_units" are passed into the URL, the
+        module checks if the units are valid and responds accordingly.
+        """
+        # Populating the database with some data.
+        Forecast.objects.create(
+            humidity=1,
+            pressure=1,
+            temperature=1,  # -273.15C
+            forecast_for=corefunctions.date_to_int(self.now),
+            clouds=1,
+            city=Cities.objects.get(name='london')
+        ).save()
+
+        # Check that valid units to do return a error
+        for unit in ['pa', 'bar', 'atm', 'torr', 'psi', 'hpa']:
+            response = self.client.get(
+                reverse('forecast', args=['london']) + f'?pressure_units={unit}'
+            )
+            self.assertEquals(
+                response.status_code,
+                200,
+                f'querying with {unit} unit did not return a 200 response'
+            )
+
+    def test_pressure_invalid_unit(self):
+        """Test that invalid pressure units in the URL return a 400
+        response.
+        """
+        # Populating the database with some data.
+        Forecast.objects.create(
+            humidity=1,
+            pressure=1,
+            temperature=1,  # -273.15C
+            forecast_for=corefunctions.date_to_int(self.now),
+            clouds=1,
+            city=Cities.objects.get(name='london')
+        ).save()
+        response = self.client.get(
+            reverse('forecast', args=['london']) + f'?pressure_units=beans'
+        )
+        self.assertEquals(response.status_code, 400)
