@@ -29,11 +29,13 @@ class TestUnitConversion(unittest.TestCase):
         # expected result.
         testcases = [
             (
-                corefunctions.UnitConversion(99, 'K', 'C').convert_temperature(),
+                corefunctions.UnitConversion(
+                    99, 'K', 'C').convert_temperature(),
                 -174.15
             ),
             (
-                corefunctions.UnitConversion(99, 'K', 'C', 1, True).convert_temperature(),
+                corefunctions.UnitConversion(
+                    99, 'K', 'C', 1, True).convert_temperature(),
                 '-174.1C'
             )
         ]
@@ -44,9 +46,11 @@ class TestUnitConversion(unittest.TestCase):
 
 def base_test(actualResult, expectedResult, failMessage=None):
     """Function yielding a sub-function to check if a test has passed."""
+
     def test(self):
         self.assertEquals(actualResult, expectedResult, failMessage)
     return test
+
 
 def test_convert_date_string_generator():
     """Generates tests to be attached to the TestUnitConversion.
@@ -68,7 +72,5 @@ def test_convert_date_string_generator():
             base_test(testcase['actual'], testcase['expected'])
         )
 
+
 test_convert_date_string_generator()
-
-
-

@@ -8,8 +8,11 @@ from datetime import datetime, timedelta
 # Third Party Imports
 
 # Local Imports
-from corefunctions import date_to_int
-
+# The except route is followed when calling the module directly.
+try:
+    from corefunctions import date_to_int
+except ModuleNotFoundError:
+    from date_to_int import date_to_int
 
 class UnitConversion:
     """Contains methods that will convert a value of a certain unit to
@@ -111,9 +114,16 @@ class UnitConversion:
 
             else:
                 raise ValueError(
-                    'Could not find datetime in the string provided.')
+                    f'Could not find datetime in the string provided \
+                    ({self.value}).')
 
             if self.newUnit == 'datetime':
                 return datetimeVal
             elif self.newUnit == 'int':
                 return date_to_int(datetimeVal)
+
+
+if __name__ == "__main__":
+    print(
+        UnitConversion('2020-02-15T02:00:00Z', 'unknown', 'int').convert_date_string()
+    )

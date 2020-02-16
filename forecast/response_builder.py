@@ -57,7 +57,14 @@ class ResponseBuilder:
             # Check if there is a date, if so, convert the date before
             # continuing.
             if self.request.get('at'):
-                # TODO: complete this path.
+                try:
+                    forecastDate = corefunctions.UnitConversion(
+                        self.request.get('at'),
+                        'unknown',
+                        'datetime'
+                    ).convert_date_string()
+                except ValueError:
+                    raise
                 pass
             else:
                 forecastDate = datetime.now()
@@ -105,7 +112,7 @@ class ResponseBuilder:
             city=self.city,
             forecast_for__gte=minDate,
             forecast_for__lte=maxTime
-        ).order_by('forecast_for')
+        ).order_by('-forecast_for')
 
         # If the data does not exist, then call the API.
         if not querySet:
@@ -115,7 +122,7 @@ class ResponseBuilder:
             city=self.city,
             forecast_for__gte=minDate,
             forecast_for__lte=maxTime
-        )
+        ).order_by('-forecast_for')
 
         return querySet
 
@@ -157,11 +164,11 @@ class ResponseBuilder:
                 )
 
                 # Convert the temperature from Kelvins to Celsius.
-                temperature = corefunctions.UnitConversion.convert_temperature(
+                temperature = corefunctions.UnitConversion(
                     data['main']['temp'],
-                    'kelvin',
-                    'celsius'
-                )
+                    'K',
+                    'C'
+                ).convert_temperature()
 
                 newData = Forecast.objects.create(
                     city_id=city,
@@ -187,13 +194,15 @@ class ResponseBuilder:
         if len(querySet) == 1:
             return querySet[0]
         else:
-            querySet = querySet.order_by(timeField)
+            querySet = querySet.order_by('-'+timeField)
             initDiff = abs(getattr(querySet[0], timeField) - forecastDate)
 
-        for dataRow in range(2, len(querySet)):
+        for dataRow in range(1, len(querySet)):
+            querySet[dataRow].forecast_for
             diff = abs(getattr(querySet[dataRow], timeField) - forecastDate)
             if diff < initDiff:
                 initDiff = diff
+
             else:
                 return querySet[dataRow - 1]
         else:
