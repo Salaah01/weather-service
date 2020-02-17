@@ -90,7 +90,7 @@ A JSON response is expected indicating a 404 response. If you are getting a serv
 
 ### Logging into the admin site
 navigate to `/admin` where you will be able to log in to the admin section. If there is any issue displaying the page, stop the server `Ctrl + C` and run `python3 manage.py runserver --insecure`. Or, set `DEBUG=True` in the settings.
-Please note that you must trun `DEBUG=False` before deploying to production.
+Please note that you must turn `DEBUG=False` before deploying to production.
 
 ## Testing
 To run unittests, run `python3 manage.py test`.
