@@ -9,7 +9,7 @@ import time
 import json
 
 # Third Party Imports
-from django.http import HttpResponse, HttpResponseServerError, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseServerError
 import requests
 
 # Local Imports

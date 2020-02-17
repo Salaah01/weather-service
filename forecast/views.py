@@ -18,6 +18,10 @@ from .response_builder import ResponseBuilder
 
 contentType = 'application/json; charset=utf-8'
 
+def index(request):
+    """Index page view"""
+    return HttpResponse("""<h1>Homepage</h1>""")
+
 
 def ping(request):
     """Function to ping the server. Returns a response indicating that the
