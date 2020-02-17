@@ -42,9 +42,7 @@ def forecast(request, city=None):
 def handler404(request, exception):
     """Handles a 404 HTTP response."""
     url = request.build_absolute_uri()
-    print(url)
     if re.search('(forecast\/)|(forecast)$', url):
-        print('=====================')
         return HttpResponse(
             json.dumps({
                 "error": "no city provided",
